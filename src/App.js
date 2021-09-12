@@ -1,3 +1,5 @@
+import Routes from './routes';
+
 export default function App() {
-  return <h1>Repos</h1>;
+  return <Routes />;
 }
