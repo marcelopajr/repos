@@ -1,5 +1,5 @@
 import api from '../../services/api';
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { FaGithub, FaPlus, FaSpinner, FaBars, FaTrash } from 'react-icons/fa';
 import { Container, Form, SubmitButton, List, DeleteButton } from './styles';
 
@@ -7,6 +7,21 @@ export default function Main() {
   const [newRepo, setNewRepo] = useState('');
   const [repositories, setRepositories] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [alert, setAlert] = useState(null);
+
+  // Search
+  useEffect(() => {
+    const repoStorage = localStorage.getItem('repos');
+
+    if (repoStorage) {
+      setRepositories(JSON.parse(repoStorage));
+    }
+  }, []);
+
+  // Saving changes
+  useEffect(() => {
+    localStorage.setItem('repos', JSON.stringify(repositories));
+  }, [repositories]);
 
   const handleSubmit = useCallback(
     (e) => {
@@ -14,13 +29,26 @@ export default function Main() {
 
       async function submit() {
         setLoading(true);
+        setAlert(null);
 
         try {
+          if (newRepo === '') {
+            throw new Error('You need to indicate a repository');
+          }
+
           const response = await api.get(`repos/${newRepo}`);
+
+          const hasRepo = repositories.find((repo) => repo.name === newRepo);
+
+          if (hasRepo) {
+            throw new Error('Duplicated repository');
+          }
+
           const data = { name: response.data.full_name };
           setRepositories([...repositories, data]);
           setNewRepo('');
         } catch (error) {
+          setAlert(true);
           console.log(error);
         } finally {
           setLoading(false);
@@ -34,6 +62,7 @@ export default function Main() {
 
   function handleInputChange(e) {
     setNewRepo(e.target.value);
+    setAlert(null);
   }
 
   const handleDelete = useCallback(
@@ -51,7 +80,7 @@ export default function Main() {
         My repositories
       </h1>
 
-      <Form onSubmit={handleSubmit}>
+      <Form onSubmit={handleSubmit} error={alert}>
         <input
           type="text"
           placeholder="Add repositories"
